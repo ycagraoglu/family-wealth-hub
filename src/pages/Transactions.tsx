@@ -46,6 +46,10 @@ const TransactionsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [showInstallments, setShowInstallments] = useState(false);
+  
+  // Simulated current user - in production this would come from auth context
+  const currentUser = users.find(u => u.id === 'u1')!; // Ahmet (Admin)
+  const isAdmin = currentUser.role === 'admin';
 
   const allAccounts = [
     ...assetAccounts.map(a => ({ ...a, accountType: 'asset' as const })),
@@ -200,24 +204,38 @@ const TransactionsPage = () => {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label>Kullanıcı</Label>
-                  <Select>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue placeholder="Kullanıcı seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map(user => (
-                        <SelectItem key={user.id} value={user.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{user.avatar}</span>
-                            {user.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {isAdmin ? (
+                  <div className="space-y-2">
+                    <Label>Kullanıcı</Label>
+                    <Select>
+                      <SelectTrigger className="bg-secondary border-border">
+                        <SelectValue placeholder="Kullanıcı seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map(user => (
+                          <SelectItem key={user.id} value={user.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{user.avatar}</span>
+                              {user.name}
+                              <span className="text-xs text-muted-foreground">
+                                ({user.role === 'admin' ? 'Admin' : user.role === 'member' ? 'Üye' : 'Çocuk'})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Kullanıcı</Label>
+                    <div className="flex items-center gap-2 p-3 rounded-md bg-secondary border border-border">
+                      <span>{currentUser.avatar}</span>
+                      <span>{currentUser.name}</span>
+                      <span className="text-xs text-muted-foreground">(Sizin adınıza)</span>
+                    </div>
+                  </div>
+                )}
 
                 <Button className="w-full bg-primary hover:bg-primary/90">
                   İşlemi Kaydet
