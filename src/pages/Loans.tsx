@@ -1,21 +1,257 @@
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { loans } from '@/data/mockData';
+import { loans as initialLoans } from '@/data/mockData';
 import { formatCurrency, getPercentage, getDaysUntil, formatShortDate } from '@/lib/formatters';
+import { Loan } from '@/types/finance';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Landmark, 
   CalendarDays, 
   TrendingDown,
   Plus,
-  MoreVertical
+  MoreVertical,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const LoansPage = () => {
+  const [loans, setLoans] = useState<Loan[]>(initialLoans);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    totalAmount: '',
+    remainingAmount: '',
+    totalInstallments: '',
+    paidInstallments: '',
+    monthlyPayment: '',
+    interestRate: '',
+    nextPaymentDate: ''
+  });
+
   const totalLoanDebt = loans.reduce((sum, loan) => sum + loan.remainingAmount, 0);
   const totalMonthlyPayment = loans.reduce((sum, loan) => sum + loan.monthlyPayment, 0);
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      totalAmount: '',
+      remainingAmount: '',
+      totalInstallments: '',
+      paidInstallments: '',
+      monthlyPayment: '',
+      interestRate: '',
+      nextPaymentDate: ''
+    });
+  };
+
+  const handleAdd = () => {
+    if (!formData.name || !formData.totalAmount || !formData.remainingAmount || 
+        !formData.totalInstallments || !formData.monthlyPayment || !formData.nextPaymentDate) {
+      toast.error('Lütfen zorunlu alanları doldurun');
+      return;
+    }
+
+    const newLoan: Loan = {
+      id: `l${Date.now()}`,
+      name: formData.name,
+      totalAmount: parseFloat(formData.totalAmount),
+      remainingAmount: parseFloat(formData.remainingAmount),
+      totalInstallments: parseInt(formData.totalInstallments),
+      paidInstallments: parseInt(formData.paidInstallments) || 0,
+      monthlyPayment: parseFloat(formData.monthlyPayment),
+      interestRate: parseFloat(formData.interestRate) || 0,
+      nextPaymentDate: formData.nextPaymentDate
+    };
+
+    setLoans([...loans, newLoan]);
+    setIsAddDialogOpen(false);
+    resetForm();
+    toast.success('Kredi eklendi');
+  };
+
+  const handleEdit = () => {
+    if (!selectedLoan) return;
+    if (!formData.name || !formData.totalAmount || !formData.remainingAmount || 
+        !formData.totalInstallments || !formData.monthlyPayment || !formData.nextPaymentDate) {
+      toast.error('Lütfen zorunlu alanları doldurun');
+      return;
+    }
+
+    setLoans(loans.map(loan => 
+      loan.id === selectedLoan.id 
+        ? {
+            ...loan,
+            name: formData.name,
+            totalAmount: parseFloat(formData.totalAmount),
+            remainingAmount: parseFloat(formData.remainingAmount),
+            totalInstallments: parseInt(formData.totalInstallments),
+            paidInstallments: parseInt(formData.paidInstallments) || 0,
+            monthlyPayment: parseFloat(formData.monthlyPayment),
+            interestRate: parseFloat(formData.interestRate) || 0,
+            nextPaymentDate: formData.nextPaymentDate
+          }
+        : loan
+    ));
+    setIsEditDialogOpen(false);
+    setSelectedLoan(null);
+    resetForm();
+    toast.success('Kredi güncellendi');
+  };
+
+  const handleDelete = () => {
+    if (!selectedLoan) return;
+    setLoans(loans.filter(loan => loan.id !== selectedLoan.id));
+    setDeleteDialogOpen(false);
+    setSelectedLoan(null);
+    toast.success('Kredi silindi');
+  };
+
+  const openEditDialog = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setFormData({
+      name: loan.name,
+      totalAmount: loan.totalAmount.toString(),
+      remainingAmount: loan.remainingAmount.toString(),
+      totalInstallments: loan.totalInstallments.toString(),
+      paidInstallments: loan.paidInstallments.toString(),
+      monthlyPayment: loan.monthlyPayment.toString(),
+      interestRate: loan.interestRate.toString(),
+      nextPaymentDate: loan.nextPaymentDate
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setDeleteDialogOpen(true);
+  };
+
+  const LoanForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
+    <div className="space-y-4 mt-4">
+      <div className="space-y-2">
+        <Label>Kredi Adı *</Label>
+        <Input 
+          placeholder="Örn: Konut Kredisi" 
+          className="bg-secondary border-border"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Toplam Kredi Tutarı *</Label>
+          <Input 
+            type="number" 
+            placeholder="0" 
+            className="bg-secondary border-border"
+            value={formData.totalAmount}
+            onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Kalan Borç *</Label>
+          <Input 
+            type="number" 
+            placeholder="0" 
+            className="bg-secondary border-border"
+            value={formData.remainingAmount}
+            onChange={(e) => setFormData({ ...formData, remainingAmount: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Toplam Taksit Sayısı *</Label>
+          <Input 
+            type="number" 
+            placeholder="0" 
+            className="bg-secondary border-border"
+            value={formData.totalInstallments}
+            onChange={(e) => setFormData({ ...formData, totalInstallments: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Ödenen Taksit Sayısı</Label>
+          <Input 
+            type="number" 
+            placeholder="0" 
+            className="bg-secondary border-border"
+            value={formData.paidInstallments}
+            onChange={(e) => setFormData({ ...formData, paidInstallments: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Aylık Taksit *</Label>
+          <Input 
+            type="number" 
+            placeholder="0" 
+            className="bg-secondary border-border"
+            value={formData.monthlyPayment}
+            onChange={(e) => setFormData({ ...formData, monthlyPayment: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Faiz Oranı (%)</Label>
+          <Input 
+            type="number" 
+            step="0.01"
+            placeholder="0" 
+            className="bg-secondary border-border"
+            value={formData.interestRate}
+            onChange={(e) => setFormData({ ...formData, interestRate: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Sonraki Ödeme Tarihi *</Label>
+        <Input 
+          type="date" 
+          className="bg-secondary border-border"
+          value={formData.nextPaymentDate}
+          onChange={(e) => setFormData({ ...formData, nextPaymentDate: e.target.value })}
+        />
+      </div>
+      <Button className="w-full bg-primary hover:bg-primary/90" onClick={onSubmit}>
+        {submitLabel}
+      </Button>
+    </div>
+  );
 
   return (
     <MainLayout>
@@ -26,10 +262,20 @@ const LoansPage = () => {
             <h1 className="text-3xl font-bold">Krediler</h1>
             <p className="text-muted-foreground">Uzun vadeli kredi borçlarınızı takip edin</p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Kredi Ekle
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90" onClick={resetForm}>
+                <Plus className="w-4 h-4 mr-2" />
+                Kredi Ekle
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Yeni Kredi Ekle</DialogTitle>
+              </DialogHeader>
+              <LoanForm onSubmit={handleAdd} submitLabel="Kredi Oluştur" />
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Summary */}
@@ -68,7 +314,7 @@ const LoansPage = () => {
             return (
               <Card 
                 key={loan.id} 
-                className="glass-card overflow-hidden animate-slide-up"
+                className="glass-card overflow-hidden animate-slide-up group"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 {/* Header */}
@@ -85,9 +331,26 @@ const LoansPage = () => {
                         </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-muted-foreground">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(loan)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Düzenle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => openDeleteDialog(loan)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Sil
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
@@ -156,6 +419,34 @@ const LoansPage = () => {
             );
           })}
         </div>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Krediyi Düzenle</DialogTitle>
+            </DialogHeader>
+            <LoanForm onSubmit={handleEdit} submitLabel="Kaydet" />
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Krediyi Sil</AlertDialogTitle>
+              <AlertDialogDescription>
+                "{selectedLoan?.name}" kredisini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>İptal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                Sil
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { assetAccounts, creditCards } from '@/data/mockData';
 import { formatCurrency, getPercentage, getNextPaymentDate, getDaysUntil } from '@/lib/formatters';
@@ -29,11 +30,13 @@ import {
   CreditCard as CardIcon, 
   Building, 
   Pencil,
-  MoreVertical 
+  MoreVertical,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const AccountsPage = () => {
+  const navigate = useNavigate();
   const [assets, setAssets] = useState<AssetAccount[]>(assetAccounts);
   const [cards, setCards] = useState<CreditCard[]>(creditCards);
 
@@ -115,8 +118,9 @@ const AccountsPage = () => {
               {assets.map((account, index) => (
                 <Card 
                   key={account.id} 
-                  className="glass-card p-6 animate-slide-up hover:border-primary/30 transition-colors"
+                  className="glass-card p-6 animate-slide-up hover:border-primary/30 transition-colors cursor-pointer group"
                   style={{ animationDelay: `${index * 0.1}s` }}
+                  onClick={() => navigate(`/accounts/asset/${account.id}`)}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -133,9 +137,7 @@ const AccountsPage = () => {
                         </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <div className="mt-auto">
                     <p className="text-sm text-muted-foreground">Bakiye</p>
@@ -222,8 +224,9 @@ const AccountsPage = () => {
                 return (
                   <Card 
                     key={card.id}
-                    className="glass-card overflow-hidden animate-slide-up"
+                    className="glass-card overflow-hidden animate-slide-up cursor-pointer hover:border-primary/30 transition-colors group"
                     style={{ animationDelay: `${index * 0.1}s` }}
+                    onClick={() => navigate(`/accounts/card/${card.id}`)}
                   >
                     {/* Card Header with gradient */}
                     <div 
@@ -246,14 +249,17 @@ const AccountsPage = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Sonraki Kesim</p>
-                          <p className={cn(
-                            "text-sm font-medium",
-                            daysUntil <= 5 ? "text-warning" : "text-muted-foreground"
-                          )}>
-                            {daysUntil} gün
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Sonraki Kesim</p>
+                            <p className={cn(
+                              "text-sm font-medium",
+                              daysUntil <= 5 ? "text-warning" : "text-muted-foreground"
+                            )}>
+                              {daysUntil} gün
+                            </p>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
 
