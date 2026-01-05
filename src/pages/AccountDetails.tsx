@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { DateRange } from 'react-day-picker';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { assetAccounts, creditCards, transactions, categories } from '@/data/mockData';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -23,10 +23,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { 
   ArrowLeft, 
   Search, 
-  Calendar,
   Filter,
   TrendingUp,
   TrendingDown,
@@ -42,8 +42,7 @@ const AccountDetailsPage = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   // Find the account or card
   const account = type === 'asset' 
@@ -77,17 +76,17 @@ const AccountDetailsPage = () => {
         if (selectedCategory && selectedCategory !== 'all' && t.category !== selectedCategory) {
           return false;
         }
-        // Date filters
-        if (dateFrom && new Date(t.date) < new Date(dateFrom)) {
+        // Date range filter
+        if (dateRange?.from && new Date(t.date) < dateRange.from) {
           return false;
         }
-        if (dateTo && new Date(t.date) > new Date(dateTo)) {
+        if (dateRange?.to && new Date(t.date) > dateRange.to) {
           return false;
         }
         return true;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [id, searchTerm, selectedCategory, dateFrom, dateTo]);
+  }, [id, searchTerm, selectedCategory, dateRange]);
 
   const totalIncome = accountTransactions
     .filter(t => t.type === 'income')
@@ -103,10 +102,10 @@ const AccountDetailsPage = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('all');
-    setDateFrom('');
-    setDateTo('');
+    setDateRange(undefined);
   };
 
+  const hasActiveFilters = searchTerm || selectedCategory !== 'all' || dateRange;
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -194,70 +193,42 @@ const AccountDetailsPage = () => {
 
         {/* Filters */}
         <Card className="glass-card p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="İşlem ara..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-secondary border-border"
-                />
-              </div>
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="İşlem ara..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-secondary border-border"
+              />
             </div>
             
             {/* Category Filter */}
-            <div className="w-full lg:w-48">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="bg-secondary border-border">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm Kategoriler</SelectItem>
-                  {categories.map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-[180px] bg-secondary border-border">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Kategori" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm Kategoriler</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            {/* Date From */}
-            <div className="w-full lg:w-44">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Başlangıç</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="pl-10 bg-secondary border-border"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Date To */}
-            <div className="w-full lg:w-44">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Bitiş</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="pl-10 bg-secondary border-border"
-                  />
-                </div>
-              </div>
-            </div>
+            {/* Date Range Picker */}
+            <DateRangePicker
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              className="w-[260px]"
+              placeholder="Tarih aralığı"
+            />
 
             {/* Clear Filters */}
-            {(searchTerm || selectedCategory !== 'all' || dateFrom || dateTo) && (
+            {hasActiveFilters && (
               <Button variant="outline" onClick={clearFilters} className="shrink-0">
                 Temizle
               </Button>
@@ -280,7 +251,7 @@ const AccountDetailsPage = () => {
               {accountTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
-                    {searchTerm || selectedCategory !== 'all' || dateFrom || dateTo 
+                    {hasActiveFilters
                       ? 'Filtreye uygun işlem bulunamadı'
                       : 'Bu hesapta henüz işlem yok'}
                   </TableCell>
