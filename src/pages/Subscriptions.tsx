@@ -1,19 +1,251 @@
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { subscriptions } from '@/data/mockData';
+import { subscriptions as initialSubscriptions } from '@/data/mockData';
 import { formatCurrency, getNextPaymentDate, getDaysUntil } from '@/lib/formatters';
+import { Subscription } from '@/types/finance';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Plus, 
   CalendarDays,
   MoreVertical,
-  Repeat
+  Repeat,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+
+const subscriptionCategories = ['Eğlence', 'Müzik', 'Teknoloji', 'Alışveriş', 'Spor', 'Eğitim', 'Diğer'];
+const subscriptionIcons = ['🎬', '🎵', '📺', '☁️', '📦', '💪', '📚', '🎮', '🎧', '📱'];
+const subscriptionColors = ['#e50914', '#1db954', '#ff0000', '#007aff', '#ff9900', '#10b981', '#8b5cf6', '#f97066'];
 
 const SubscriptionsPage = () => {
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    amount: '',
+    billingDay: '',
+    category: '',
+    icon: '🎬',
+    color: '#e50914'
+  });
+
   const totalMonthly = subscriptions.reduce((sum, sub) => sum + sub.amount, 0);
   const totalYearly = totalMonthly * 12;
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      amount: '',
+      billingDay: '',
+      category: '',
+      icon: '🎬',
+      color: '#e50914'
+    });
+  };
+
+  const handleAdd = () => {
+    if (!formData.name || !formData.amount || !formData.billingDay || !formData.category) {
+      toast.error('Lütfen tüm alanları doldurun');
+      return;
+    }
+
+    const newSubscription: Subscription = {
+      id: `s${Date.now()}`,
+      name: formData.name,
+      amount: parseFloat(formData.amount),
+      billingDay: parseInt(formData.billingDay),
+      category: formData.category,
+      icon: formData.icon,
+      color: formData.color
+    };
+
+    setSubscriptions([...subscriptions, newSubscription]);
+    setIsAddDialogOpen(false);
+    resetForm();
+    toast.success('Abonelik eklendi');
+  };
+
+  const handleEdit = () => {
+    if (!selectedSubscription) return;
+    if (!formData.name || !formData.amount || !formData.billingDay || !formData.category) {
+      toast.error('Lütfen tüm alanları doldurun');
+      return;
+    }
+
+    setSubscriptions(subscriptions.map(sub => 
+      sub.id === selectedSubscription.id 
+        ? {
+            ...sub,
+            name: formData.name,
+            amount: parseFloat(formData.amount),
+            billingDay: parseInt(formData.billingDay),
+            category: formData.category,
+            icon: formData.icon,
+            color: formData.color
+          }
+        : sub
+    ));
+    setIsEditDialogOpen(false);
+    setSelectedSubscription(null);
+    resetForm();
+    toast.success('Abonelik güncellendi');
+  };
+
+  const handleDelete = () => {
+    if (!selectedSubscription) return;
+    setSubscriptions(subscriptions.filter(sub => sub.id !== selectedSubscription.id));
+    setDeleteDialogOpen(false);
+    setSelectedSubscription(null);
+    toast.success('Abonelik silindi');
+  };
+
+  const openEditDialog = (sub: Subscription) => {
+    setSelectedSubscription(sub);
+    setFormData({
+      name: sub.name,
+      amount: sub.amount.toString(),
+      billingDay: sub.billingDay.toString(),
+      category: sub.category,
+      icon: sub.icon,
+      color: sub.color
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (sub: Subscription) => {
+    setSelectedSubscription(sub);
+    setDeleteDialogOpen(true);
+  };
+
+  const SubscriptionForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
+    <div className="space-y-4 mt-4">
+      <div className="space-y-2">
+        <Label>Abonelik Adı</Label>
+        <Input 
+          placeholder="Örn: Netflix" 
+          className="bg-secondary border-border"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Aylık Tutar</Label>
+          <Input 
+            type="number" 
+            placeholder="0" 
+            className="bg-secondary border-border"
+            value={formData.amount}
+            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Ödeme Günü</Label>
+          <Select value={formData.billingDay} onValueChange={(v) => setFormData({ ...formData, billingDay: v })}>
+            <SelectTrigger className="bg-secondary border-border">
+              <SelectValue placeholder="Gün seçin" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Kategori</Label>
+        <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+          <SelectTrigger className="bg-secondary border-border">
+            <SelectValue placeholder="Kategori seçin" />
+          </SelectTrigger>
+          <SelectContent>
+            {subscriptionCategories.map(cat => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>İkon</Label>
+          <Select value={formData.icon} onValueChange={(v) => setFormData({ ...formData, icon: v })}>
+            <SelectTrigger className="bg-secondary border-border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {subscriptionIcons.map(icon => (
+                <SelectItem key={icon} value={icon}>{icon}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Renk</Label>
+          <Select value={formData.color} onValueChange={(v) => setFormData({ ...formData, color: v })}>
+            <SelectTrigger className="bg-secondary border-border">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: formData.color }} />
+                <span>Renk</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {subscriptionColors.map(color => (
+                <SelectItem key={color} value={color}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <Button className="w-full bg-primary hover:bg-primary/90" onClick={onSubmit}>
+        {submitLabel}
+      </Button>
+    </div>
+  );
 
   return (
     <MainLayout>
@@ -24,10 +256,20 @@ const SubscriptionsPage = () => {
             <h1 className="text-3xl font-bold">Abonelikler</h1>
             <p className="text-muted-foreground">Düzenli ödemelerinizi takip edin</p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Abonelik Ekle
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90" onClick={resetForm}>
+                <Plus className="w-4 h-4 mr-2" />
+                Abonelik Ekle
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border">
+              <DialogHeader>
+                <DialogTitle>Yeni Abonelik Ekle</DialogTitle>
+              </DialogHeader>
+              <SubscriptionForm onSubmit={handleAdd} submitLabel="Abonelik Oluştur" />
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Summary */}
@@ -88,13 +330,30 @@ const SubscriptionsPage = () => {
                         <p className="text-sm text-muted-foreground">{sub.category}</p>
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(sub)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Düzenle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => openDeleteDialog(sub)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Sil
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   <div className="flex items-end justify-between">
@@ -137,6 +396,34 @@ const SubscriptionsPage = () => {
             ))}
           </div>
         </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle>Aboneliği Düzenle</DialogTitle>
+            </DialogHeader>
+            <SubscriptionForm onSubmit={handleEdit} submitLabel="Kaydet" />
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Aboneliği Sil</AlertDialogTitle>
+              <AlertDialogDescription>
+                "{selectedSubscription?.name}" aboneliğini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>İptal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                Sil
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );
