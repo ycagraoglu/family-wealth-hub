@@ -1,4 +1,4 @@
-import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
+import { NavLink as RouterNavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, 
@@ -9,7 +9,8 @@ import {
   Users,
   Settings,
   X,
-  Menu
+  Menu,
+  User
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const navItems = [
 
 export const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -90,7 +92,13 @@ export const Sidebar = () => {
 
           {/* User Section */}
           <div className="p-4 border-t border-sidebar-border">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-sidebar-accent/50">
+            <div 
+              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-sidebar-accent/50 cursor-pointer hover:bg-sidebar-accent transition-colors"
+              onClick={() => {
+                navigate('/profile');
+                setIsCollapsed(false);
+              }}
+            >
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center text-lg">
                 👨‍💼
               </div>
@@ -98,9 +106,7 @@ export const Sidebar = () => {
                 <p className="font-medium truncate">Ahmet</p>
                 <p className="text-xs text-muted-foreground">Admin</p>
               </div>
-              <Button variant="ghost" size="icon" className="shrink-0">
-                <Settings className="w-4 h-4" />
-              </Button>
+              <User className="w-4 h-4 text-muted-foreground" />
             </div>
           </div>
         </div>
