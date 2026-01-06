@@ -31,6 +31,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Landmark, 
   CalendarDays, 
@@ -59,7 +66,7 @@ const LoansPage = () => {
     paidInstallments: '',
     monthlyPayment: '',
     interestRate: '',
-    nextPaymentDate: ''
+    paymentDay: ''
   });
 
   const totalLoanDebt = loans.reduce((sum, loan) => sum + loan.remainingAmount, 0);
@@ -74,17 +81,31 @@ const LoansPage = () => {
       paidInstallments: '',
       monthlyPayment: '',
       interestRate: '',
-      nextPaymentDate: ''
+      paymentDay: ''
     });
+  };
+
+  // Calculate next payment date based on payment day
+  const getNextPaymentDate = (day: number): string => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    let nextPaymentDate = new Date(currentYear, currentMonth, day);
+    if (nextPaymentDate <= today) {
+      nextPaymentDate = new Date(currentYear, currentMonth + 1, day);
+    }
+    return nextPaymentDate.toISOString().split('T')[0];
   };
 
   const handleAdd = () => {
     if (!formData.name || !formData.totalAmount || !formData.remainingAmount || 
-        !formData.totalInstallments || !formData.monthlyPayment || !formData.nextPaymentDate) {
+        !formData.totalInstallments || !formData.monthlyPayment || !formData.paymentDay) {
       toast.error('Lütfen zorunlu alanları doldurun');
       return;
     }
 
+    const paymentDay = parseInt(formData.paymentDay);
     const newLoan: Loan = {
       id: `l${Date.now()}`,
       name: formData.name,
@@ -94,7 +115,7 @@ const LoansPage = () => {
       paidInstallments: parseInt(formData.paidInstallments) || 0,
       monthlyPayment: parseFloat(formData.monthlyPayment),
       interestRate: parseFloat(formData.interestRate) || 0,
-      nextPaymentDate: formData.nextPaymentDate
+      nextPaymentDate: getNextPaymentDate(paymentDay)
     };
 
     setLoans([...loans, newLoan]);
@@ -106,11 +127,12 @@ const LoansPage = () => {
   const handleEdit = () => {
     if (!selectedLoan) return;
     if (!formData.name || !formData.totalAmount || !formData.remainingAmount || 
-        !formData.totalInstallments || !formData.monthlyPayment || !formData.nextPaymentDate) {
+        !formData.totalInstallments || !formData.monthlyPayment || !formData.paymentDay) {
       toast.error('Lütfen zorunlu alanları doldurun');
       return;
     }
 
+    const paymentDay = parseInt(formData.paymentDay);
     setLoans(loans.map(loan => 
       loan.id === selectedLoan.id 
         ? {
@@ -122,7 +144,7 @@ const LoansPage = () => {
             paidInstallments: parseInt(formData.paidInstallments) || 0,
             monthlyPayment: parseFloat(formData.monthlyPayment),
             interestRate: parseFloat(formData.interestRate) || 0,
-            nextPaymentDate: formData.nextPaymentDate
+            nextPaymentDate: getNextPaymentDate(paymentDay)
           }
         : loan
     ));
@@ -142,6 +164,8 @@ const LoansPage = () => {
 
   const openEditDialog = (loan: Loan) => {
     setSelectedLoan(loan);
+    // Extract day from nextPaymentDate
+    const paymentDay = new Date(loan.nextPaymentDate).getDate().toString();
     setFormData({
       name: loan.name,
       totalAmount: loan.totalAmount.toString(),
@@ -150,7 +174,7 @@ const LoansPage = () => {
       paidInstallments: loan.paidInstallments.toString(),
       monthlyPayment: loan.monthlyPayment.toString(),
       interestRate: loan.interestRate.toString(),
-      nextPaymentDate: loan.nextPaymentDate
+      paymentDay: paymentDay
     });
     setIsEditDialogOpen(true);
   };
@@ -239,13 +263,22 @@ const LoansPage = () => {
         </div>
       </div>
       <div className="space-y-2">
-        <Label>Sonraki Ödeme Tarihi *</Label>
-        <Input 
-          type="date" 
-          className="bg-secondary border-border"
-          value={formData.nextPaymentDate}
-          onChange={(e) => setFormData({ ...formData, nextPaymentDate: e.target.value })}
-        />
+        <Label>Ödeme Günü *</Label>
+        <Select 
+          value={formData.paymentDay} 
+          onValueChange={(value) => setFormData({ ...formData, paymentDay: value })}
+        >
+          <SelectTrigger className="bg-secondary border-border">
+            <SelectValue placeholder="Gün seçin" />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+              <SelectItem key={day} value={day.toString()}>
+                Ayın {day}. günü
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <Button className="w-full bg-primary hover:bg-primary/90" onClick={onSubmit}>
         {submitLabel}
