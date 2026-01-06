@@ -58,6 +58,17 @@ const AccountsPage = () => {
   const [assets, setAssets] = useState<AssetAccount[]>(assetAccounts);
   const [cards, setCards] = useState<CreditCard[]>(creditCards);
   
+  // Asset CRUD state
+  const [isAssetDialogOpen, setIsAssetDialogOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<AssetAccount | null>(null);
+  const [deleteAssetId, setDeleteAssetId] = useState<string | null>(null);
+  const [assetFormData, setAssetFormData] = useState({
+    name: '',
+    type: 'bank' as 'cash' | 'bank',
+    balance: '',
+    icon: ''
+  });
+
   // Card CRUD state
   const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
@@ -74,6 +85,64 @@ const AccountsPage = () => {
   const totalAssetBalance = assets.reduce((sum, acc) => sum + acc.balance, 0);
   const totalCardDebt = cards.reduce((sum, card) => sum + card.currentDebt, 0);
   const totalCardLimit = cards.reduce((sum, card) => sum + card.totalLimit, 0);
+
+  // Asset CRUD handlers
+  const resetAssetForm = () => {
+    setAssetFormData({
+      name: '',
+      type: 'bank',
+      balance: '',
+      icon: ''
+    });
+    setEditingAsset(null);
+  };
+
+  const openAssetDialog = (asset?: AssetAccount) => {
+    if (asset) {
+      setEditingAsset(asset);
+      setAssetFormData({
+        name: asset.name,
+        type: asset.type,
+        balance: asset.balance.toString(),
+        icon: asset.icon || ''
+      });
+    } else {
+      resetAssetForm();
+    }
+    setIsAssetDialogOpen(true);
+  };
+
+  const handleSaveAsset = () => {
+    if (!assetFormData.name || !assetFormData.balance) {
+      toast({ title: 'Hata', description: 'Lütfen zorunlu alanları doldurun', variant: 'destructive' });
+      return;
+    }
+
+    const assetData: AssetAccount = {
+      id: editingAsset?.id || `a${Date.now()}`,
+      name: assetFormData.name,
+      type: assetFormData.type,
+      balance: parseFloat(assetFormData.balance),
+      icon: assetFormData.icon || undefined
+    };
+
+    if (editingAsset) {
+      setAssets(prev => prev.map(a => a.id === editingAsset.id ? assetData : a));
+      toast({ title: 'Başarılı', description: 'Hesap güncellendi' });
+    } else {
+      setAssets(prev => [...prev, assetData]);
+      toast({ title: 'Başarılı', description: 'Yeni hesap eklendi' });
+    }
+
+    setIsAssetDialogOpen(false);
+    resetAssetForm();
+  };
+
+  const handleDeleteAsset = (assetId: string) => {
+    setAssets(prev => prev.filter(a => a.id !== assetId));
+    setDeleteAssetId(null);
+    toast({ title: 'Başarılı', description: 'Hesap silindi' });
+  };
 
   // Card CRUD handlers
   const resetCardForm = () => {
@@ -170,56 +239,24 @@ const AccountsPage = () => {
                 <span className="text-sm text-muted-foreground">Toplam Bakiye: </span>
                 <span className="text-lg font-bold text-positive">{formatCurrency(totalAssetBalance)}</span>
               </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-primary hover:bg-primary/90">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Hesap Ekle
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-card border-border">
-                  <DialogHeader>
-                    <DialogTitle>Yeni Hesap Ekle</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label>Hesap Adı</Label>
-                      <Input placeholder="Örn: Ziraat Bankası" className="bg-secondary border-border" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Hesap Türü</Label>
-                      <Select>
-                        <SelectTrigger className="bg-secondary border-border">
-                          <SelectValue placeholder="Tür seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bank">Banka Hesabı</SelectItem>
-                          <SelectItem value="cash">Nakit</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Mevcut Bakiye</Label>
-                      <Input type="number" placeholder="0" className="bg-secondary border-border" />
-                    </div>
-                    <Button className="w-full bg-primary hover:bg-primary/90">
-                      Hesap Oluştur
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => openAssetDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Hesap Ekle
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {assets.map((account, index) => (
                 <Card 
                   key={account.id} 
-                  className="glass-card p-6 animate-slide-up hover:border-primary/30 transition-colors cursor-pointer group"
+                  className="glass-card p-6 animate-slide-up hover:border-primary/30 transition-colors group"
                   style={{ animationDelay: `${index * 0.1}s` }}
-                  onClick={() => navigate(`/accounts/asset/${account.id}`)}
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
+                    <div 
+                      className="flex items-center gap-3 flex-1 cursor-pointer"
+                      onClick={() => navigate(`/accounts/asset/${account.id}`)}
+                    >
                       <div className={cn(
                         "w-12 h-12 rounded-xl flex items-center justify-center text-2xl",
                         account.type === 'bank' ? 'bg-chart-3/10' : 'bg-positive/10'
@@ -233,15 +270,115 @@ const AccountsPage = () => {
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openAssetDialog(account)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Düzenle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => setDeleteAssetId(account.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Sil
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <div className="mt-auto">
+                  <div 
+                    className="mt-auto cursor-pointer"
+                    onClick={() => navigate(`/accounts/asset/${account.id}`)}
+                  >
                     <p className="text-sm text-muted-foreground">Bakiye</p>
                     <p className="text-2xl font-bold text-positive">{formatCurrency(account.balance)}</p>
                   </div>
                 </Card>
               ))}
             </div>
+
+            {/* Asset Dialog */}
+            <Dialog open={isAssetDialogOpen} onOpenChange={setIsAssetDialogOpen}>
+              <DialogContent className="bg-card border-border">
+                <DialogHeader>
+                  <DialogTitle>{editingAsset ? 'Hesap Düzenle' : 'Yeni Hesap Ekle'}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Hesap Adı *</Label>
+                    <Input 
+                      placeholder="Örn: Ziraat Bankası" 
+                      className="bg-secondary border-border"
+                      value={assetFormData.name}
+                      onChange={(e) => setAssetFormData(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Hesap Türü</Label>
+                    <Select 
+                      value={assetFormData.type}
+                      onValueChange={(value: 'cash' | 'bank') => setAssetFormData(prev => ({ ...prev, type: value }))}
+                    >
+                      <SelectTrigger className="bg-secondary border-border">
+                        <SelectValue placeholder="Tür seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bank">Banka Hesabı</SelectItem>
+                        <SelectItem value="cash">Nakit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mevcut Bakiye *</Label>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      className="bg-secondary border-border"
+                      value={assetFormData.balance}
+                      onChange={(e) => setAssetFormData(prev => ({ ...prev, balance: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>İkon (Emoji)</Label>
+                    <Input 
+                      placeholder="Örn: 🏦" 
+                      className="bg-secondary border-border"
+                      value={assetFormData.icon}
+                      onChange={(e) => setAssetFormData(prev => ({ ...prev, icon: e.target.value }))}
+                    />
+                  </div>
+                  <Button className="w-full bg-primary hover:bg-primary/90" onClick={handleSaveAsset}>
+                    {editingAsset ? 'Güncelle' : 'Hesap Oluştur'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Asset Confirmation */}
+            <AlertDialog open={!!deleteAssetId} onOpenChange={() => setDeleteAssetId(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hesabı silmek istediğinize emin misiniz?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bu işlem geri alınamaz. Hesaba ait tüm veriler silinecektir.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>İptal</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive hover:bg-destructive/90"
+                    onClick={() => deleteAssetId && handleDeleteAsset(deleteAssetId)}
+                  >
+                    Sil
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           {/* Credit Cards Tab */}
