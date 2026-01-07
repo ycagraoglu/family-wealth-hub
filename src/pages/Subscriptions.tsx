@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getBrandLogo } from '@/lib/brandLogos';
 
 const subscriptionCategories = ['Eğlence', 'Müzik', 'Teknoloji', 'Alışveriş', 'Spor', 'Eğitim', 'Diğer'];
 const subscriptionIcons = ['🎬', '🎵', '📺', '☁️', '📦', '💪', '📚', '🎮', '🎧', '📱'];
@@ -157,6 +158,38 @@ const SubscriptionsPage = () => {
     setDeleteDialogOpen(true);
   };
 
+  const SubscriptionLogo = ({ name, icon, color }: { name: string; icon: string; color: string }) => {
+    const logoUrl = getBrandLogo(name);
+    
+    if (logoUrl) {
+      return (
+        <div 
+          className="w-12 h-12 rounded-xl flex items-center justify-center bg-white p-1.5 overflow-hidden"
+        >
+          <img 
+            src={logoUrl} 
+            alt={name}
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              // Fallback to icon if image fails to load
+              (e.target as HTMLImageElement).style.display = 'none';
+              (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-2xl">${icon}</span>`;
+            }}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div 
+        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+        style={{ backgroundColor: `${color}15` }}
+      >
+        {icon}
+      </div>
+    );
+  };
+
   const SubscriptionForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
     <div className="space-y-4 mt-4">
       <div className="space-y-2">
@@ -208,7 +241,7 @@ const SubscriptionsPage = () => {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>İkon</Label>
+          <Label>İkon (Logo yoksa)</Label>
           <Select value={formData.icon} onValueChange={(v) => setFormData({ ...formData, icon: v })}>
             <SelectTrigger className="bg-secondary border-border">
               <SelectValue />
@@ -319,12 +352,7 @@ const SubscriptionsPage = () => {
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                        style={{ backgroundColor: `${sub.color}15` }}
-                      >
-                        {sub.icon}
-                      </div>
+                      <SubscriptionLogo name={sub.name} icon={sub.icon} color={sub.color} />
                       <div>
                         <h3 className="font-semibold">{sub.name}</h3>
                         <p className="text-sm text-muted-foreground">{sub.category}</p>

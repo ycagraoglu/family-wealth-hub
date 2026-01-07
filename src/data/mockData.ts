@@ -1,9 +1,9 @@
 import { User, AssetAccount, CreditCard, Transaction, Loan, Subscription } from '@/types/finance';
 
 export const users: User[] = [
-  { id: 'u1', name: 'Ahmet', role: 'admin', avatar: '👨‍💼' },
-  { id: 'u2', name: 'Ayşe', role: 'member', avatar: '👩‍💻' },
-  { id: 'u3', name: 'Can', role: 'kid', avatar: '🧒' },
+  { id: 'u1', name: 'Ahmet Yılmaz', role: 'admin', avatar: 'ahmet-yilmaz' },
+  { id: 'u2', name: 'Ayşe Demir', role: 'member', avatar: 'ayse-demir' },
+  { id: 'u3', name: 'Can Yılmaz', role: 'kid', avatar: 'can-yilmaz' },
 ];
 
 export const assetAccounts: AssetAccount[] = [

@@ -11,24 +11,27 @@ import { users } from '@/data/mockData';
 import { User as UserIcon, Lock, Shield, Save, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Professional avatar options using DiceBear API
-const avatarStyles = [
-  { seed: 'businessman', label: 'İş Adamı' },
-  { seed: 'businesswoman', label: 'İş Kadını' },
-  { seed: 'developer', label: 'Geliştirici' },
-  { seed: 'designer', label: 'Tasarımcı' },
-  { seed: 'manager', label: 'Yönetici' },
-  { seed: 'analyst', label: 'Analist' },
-  { seed: 'consultant', label: 'Danışman' },
-  { seed: 'executive', label: 'Yönetici' },
-  { seed: 'student', label: 'Öğrenci' },
-  { seed: 'teacher', label: 'Öğretmen' },
-  { seed: 'engineer', label: 'Mühendis' },
-  { seed: 'doctor', label: 'Doktor' },
+// Professional photo avatars using pravatar.cc
+const avatarOptions = [
+  { id: 'professional-1', url: 'https://i.pravatar.cc/150?img=1' },
+  { id: 'professional-2', url: 'https://i.pravatar.cc/150?img=3' },
+  { id: 'professional-3', url: 'https://i.pravatar.cc/150?img=5' },
+  { id: 'professional-4', url: 'https://i.pravatar.cc/150?img=7' },
+  { id: 'professional-5', url: 'https://i.pravatar.cc/150?img=8' },
+  { id: 'professional-6', url: 'https://i.pravatar.cc/150?img=11' },
+  { id: 'professional-7', url: 'https://i.pravatar.cc/150?img=12' },
+  { id: 'professional-8', url: 'https://i.pravatar.cc/150?img=13' },
+  { id: 'professional-9', url: 'https://i.pravatar.cc/150?img=14' },
+  { id: 'professional-10', url: 'https://i.pravatar.cc/150?img=15' },
+  { id: 'professional-11', url: 'https://i.pravatar.cc/150?img=16' },
+  { id: 'professional-12', url: 'https://i.pravatar.cc/150?img=17' },
 ];
 
-const getAvatarUrl = (seed: string) => 
-  `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=c0aede,b6e3f4,ffdfbf,ffd5dc,d1d4f9`;
+const getAvatarUrl = (avatarId: string) => {
+  const found = avatarOptions.find(a => a.id === avatarId);
+  if (found) return found.url;
+  return `https://i.pravatar.cc/150?u=${avatarId}`;
+};
 
 const ProfilePage = () => {
   // Simulating current user as the first user (Admin)
@@ -40,7 +43,7 @@ const ProfilePage = () => {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    avatarSeed: 'ahmet'
+    avatarId: 'professional-1'
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -54,7 +57,7 @@ const ProfilePage = () => {
     setCurrentUser(prev => ({
       ...prev,
       name: formData.name,
-      avatar: formData.avatarSeed
+      avatar: formData.avatarId
     }));
 
     toast({ title: 'Başarılı', description: 'Profil bilgileri güncellendi' });
@@ -112,9 +115,9 @@ const ProfilePage = () => {
         <Card className="glass-card p-6 space-y-6">
           <div className="flex items-center gap-6">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center overflow-hidden">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center overflow-hidden ring-4 ring-background">
                 <img 
-                  src={getAvatarUrl(formData.avatarSeed)} 
+                  src={getAvatarUrl(formData.avatarId)} 
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
@@ -152,23 +155,22 @@ const ProfilePage = () => {
                   <Camera className="w-4 h-4" />
                   Avatar Seç
                 </h3>
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                  {avatarStyles.map(({ seed, label }) => (
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                  {avatarOptions.map(({ id, url }) => (
                     <button
-                      key={seed}
+                      key={id}
                       type="button"
-                      title={label}
                       className={cn(
                         "w-14 h-14 rounded-full flex items-center justify-center transition-all overflow-hidden",
-                        formData.avatarSeed === seed 
+                        formData.avatarId === id 
                           ? "ring-2 ring-primary ring-offset-2 ring-offset-background scale-110" 
-                          : "bg-secondary hover:bg-secondary/80"
+                          : "hover:ring-2 hover:ring-muted-foreground/50"
                       )}
-                      onClick={() => setFormData(prev => ({ ...prev, avatarSeed: seed }))}
+                      onClick={() => setFormData(prev => ({ ...prev, avatarId: id }))}
                     >
                       <img 
-                        src={getAvatarUrl(seed)} 
-                        alt={label}
+                        src={url} 
+                        alt="Avatar option"
                         className="w-full h-full object-cover"
                       />
                     </button>
