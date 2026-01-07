@@ -62,7 +62,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
 const getAvatarUrl = (seed: string) => 
-  `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=c0aede,b6e3f4,ffdfbf,ffd5dc,d1d4f9`;
+  `https://i.pravatar.cc/150?u=${seed}`;
 
 const TransactionsPage = () => {
   const [txList, setTxList] = useState<Transaction[]>(initialTransactions);

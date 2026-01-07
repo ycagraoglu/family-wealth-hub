@@ -101,9 +101,9 @@ export const Sidebar = () => {
                 setIsCollapsed(false);
               }}
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center overflow-hidden">
+              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/20">
                 <img 
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=ahmet&backgroundColor=c0aede" 
+                  src="https://i.pravatar.cc/150?img=3" 
                   alt="Ahmet"
                   className="w-full h-full object-cover"
                 />
