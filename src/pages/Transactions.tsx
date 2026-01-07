@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { transactions, users, assetAccounts, creditCards, categories } from '@/data/mockData';
+import { transactions as initialTransactions, users, assetAccounts, creditCards, categories } from '@/data/mockData';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { Transaction } from '@/types/finance';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -29,6 +39,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { 
   Plus, 
@@ -37,15 +53,36 @@ import {
   ArrowDownLeft,
   CreditCard,
   Wallet,
-  Filter
+  Filter,
+  MoreHorizontal,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+
+const getAvatarUrl = (seed: string) => 
+  `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=c0aede,b6e3f4,ffdfbf,ffd5dc,d1d4f9`;
 
 const TransactionsPage = () => {
-  const [txList] = useState<Transaction[]>(transactions);
+  const [txList, setTxList] = useState<Transaction[]>(initialTransactions);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [showInstallments, setShowInstallments] = useState(false);
+  
+  // Edit & Delete state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [formData, setFormData] = useState({
+    type: 'expense' as 'income' | 'expense',
+    description: '',
+    amount: '',
+    category: '',
+    accountId: '',
+    userId: '',
+    installments: '1'
+  });
   
   // Simulated current user - in production this would come from auth context
   const currentUser = users.find(u => u.id === 'u1')!; // Ahmet (Admin)
@@ -68,7 +105,8 @@ const TransactionsPage = () => {
   };
 
   const getUserAvatar = (userId: string) => {
-    return users.find(u => u.id === userId)?.avatar || '👤';
+    const user = users.find(u => u.id === userId);
+    return user?.name?.toLowerCase() || 'user';
   };
 
   const isCardAccount = (accountId: string) => {
@@ -88,6 +126,57 @@ const TransactionsPage = () => {
   const totalExpense = filteredTransactions
     .filter(tx => tx.type === 'expense')
     .reduce((sum, tx) => sum + tx.amount, 0);
+
+  const openEditDialog = (tx: Transaction) => {
+    setSelectedTransaction(tx);
+    setFormData({
+      type: tx.type,
+      description: tx.description,
+      amount: tx.amount.toString(),
+      category: tx.category,
+      accountId: tx.accountId,
+      userId: tx.userId,
+      installments: tx.installments?.toString() || '1'
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (tx: Transaction) => {
+    setSelectedTransaction(tx);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleEdit = () => {
+    if (!selectedTransaction) return;
+
+    setTxList(prev => prev.map(tx => 
+      tx.id === selectedTransaction.id 
+        ? {
+            ...tx,
+            type: formData.type,
+            description: formData.description,
+            amount: parseFloat(formData.amount),
+            category: formData.category,
+            accountId: formData.accountId,
+            userId: formData.userId,
+            installments: parseInt(formData.installments) || 1
+          }
+        : tx
+    ));
+
+    toast({ title: 'Başarılı', description: 'İşlem güncellendi' });
+    setIsEditDialogOpen(false);
+    setSelectedTransaction(null);
+  };
+
+  const handleDelete = () => {
+    if (!selectedTransaction) return;
+
+    setTxList(prev => prev.filter(tx => tx.id !== selectedTransaction.id));
+    toast({ title: 'Başarılı', description: 'İşlem silindi' });
+    setDeleteDialogOpen(false);
+    setSelectedTransaction(null);
+  };
 
   return (
     <MainLayout>
@@ -215,7 +304,11 @@ const TransactionsPage = () => {
                         {users.map(user => (
                           <SelectItem key={user.id} value={user.id}>
                             <div className="flex items-center gap-2">
-                              <span>{user.avatar}</span>
+                              <img 
+                                src={getAvatarUrl(user.name.toLowerCase())} 
+                                alt={user.name}
+                                className="w-6 h-6 rounded-full"
+                              />
                               {user.name}
                               <span className="text-xs text-muted-foreground">
                                 ({user.role === 'admin' ? 'Admin' : user.role === 'member' ? 'Üye' : 'Çocuk'})
@@ -230,7 +323,11 @@ const TransactionsPage = () => {
                   <div className="space-y-2">
                     <Label>Kullanıcı</Label>
                     <div className="flex items-center gap-2 p-3 rounded-md bg-secondary border border-border">
-                      <span>{currentUser.avatar}</span>
+                      <img 
+                        src={getAvatarUrl(currentUser.name.toLowerCase())} 
+                        alt={currentUser.name}
+                        className="w-6 h-6 rounded-full"
+                      />
                       <span>{currentUser.name}</span>
                       <span className="text-xs text-muted-foreground">(Sizin adınıza)</span>
                     </div>
@@ -321,6 +418,7 @@ const TransactionsPage = () => {
                 <TableHead className="text-muted-foreground">Kategori</TableHead>
                 <TableHead className="text-muted-foreground">Hesap</TableHead>
                 <TableHead className="text-muted-foreground text-right">Tutar</TableHead>
+                <TableHead className="text-muted-foreground w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -329,7 +427,11 @@ const TransactionsPage = () => {
                   <TableCell className="font-medium">{formatDate(tx.date)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{getUserAvatar(tx.userId)}</span>
+                      <img 
+                        src={getAvatarUrl(getUserAvatar(tx.userId))} 
+                        alt={getUserName(tx.userId)}
+                        className="w-8 h-8 rounded-full"
+                      />
                       <span>{getUserName(tx.userId)}</span>
                     </div>
                   </TableCell>
@@ -366,12 +468,140 @@ const TransactionsPage = () => {
                       {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(tx)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Düzenle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => openDeleteDialog(tx)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Sil
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </Card>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle>İşlemi Düzenle</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>İşlem Türü</Label>
+              <Select value={formData.type} onValueChange={(value: 'income' | 'expense') => setFormData(prev => ({ ...prev, type: value }))}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">Gider</SelectItem>
+                  <SelectItem value="income">Gelir</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Açıklama</Label>
+              <Input 
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                className="bg-secondary border-border" 
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tutar</Label>
+                <Input 
+                  type="number" 
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  className="bg-secondary border-border" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Kategori</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                  <SelectTrigger className="bg-secondary border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Hesap</Label>
+              <Select value={formData.accountId} onValueChange={(value) => setFormData(prev => ({ ...prev, accountId: value }))}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {assetAccounts.map(acc => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      <div className="flex items-center gap-2">
+                        <Wallet className="w-4 h-4 text-positive" />
+                        {acc.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {creditCards.map(card => (
+                    <SelectItem key={card.id} value={card.id}>
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-negative" />
+                        {card.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button className="w-full" onClick={handleEdit}>
+              Değişiklikleri Kaydet
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>İşlemi silmek istediğinize emin misiniz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{selectedTransaction?.description}" işlemi kalıcı olarak silinecektir. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 };

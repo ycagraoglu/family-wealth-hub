@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -55,10 +56,11 @@ export const Sidebar = () => {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center">
                 <Wallet className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h1 className="text-lg font-bold">FamilyExpense</h1>
                 <p className="text-xs text-muted-foreground">Aile Finansı</p>
               </div>
+              <ThemeToggle />
             </div>
           </div>
 
@@ -99,8 +101,12 @@ export const Sidebar = () => {
                 setIsCollapsed(false);
               }}
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center text-lg">
-                👨‍💼
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center overflow-hidden">
+                <img 
+                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=ahmet&backgroundColor=c0aede" 
+                  alt="Ahmet"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">Ahmet</p>
