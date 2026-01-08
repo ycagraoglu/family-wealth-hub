@@ -56,8 +56,10 @@ import {
   Filter,
   MoreHorizontal,
   Pencil,
-  Trash2
+  Trash2,
+  Building2
 } from 'lucide-react';
+import { getBankLogo } from '@/lib/brandLogos';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
@@ -100,6 +102,14 @@ const TransactionsPage = () => {
     return card?.name || 'Bilinmeyen';
   };
 
+  const getAccountLogo = (accountId: string): string | null => {
+    const asset = assetAccounts.find(a => a.id === accountId);
+    if (asset) return getBankLogo(asset.name);
+    const card = creditCards.find(c => c.id === accountId);
+    if (card) return getBankLogo(card.name);
+    return null;
+  };
+
   const getUserName = (userId: string) => {
     return users.find(u => u.id === userId)?.name || 'Bilinmeyen';
   };
@@ -111,6 +121,34 @@ const TransactionsPage = () => {
 
   const isCardAccount = (accountId: string) => {
     return creditCards.some(c => c.id === accountId);
+  };
+
+  // Account Logo Component
+  const AccountLogo = ({ accountId }: { accountId: string }) => {
+    const logo = getAccountLogo(accountId);
+    const isCard = isCardAccount(accountId);
+    
+    if (logo) {
+      return (
+        <div className="w-6 h-6 rounded bg-white p-0.5 overflow-hidden flex-shrink-0">
+          <img 
+            src={logo} 
+            alt={getAccountName(accountId)} 
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement!.innerHTML = isCard 
+                ? '<svg class="w-4 h-4 text-negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>'
+                : '<svg class="w-4 h-4 text-positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>';
+            }}
+          />
+        </div>
+      );
+    }
+    
+    return isCard 
+      ? <CreditCard className="w-5 h-5 text-negative flex-shrink-0" />
+      : <Building2 className="w-5 h-5 text-positive flex-shrink-0" />;
   };
 
   const filteredTransactions = txList.filter(tx => {
@@ -452,11 +490,7 @@ const TransactionsPage = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {isCardAccount(tx.accountId) ? (
-                        <CreditCard className="w-4 h-4 text-negative" />
-                      ) : (
-                        <Wallet className="w-4 h-4 text-positive" />
-                      )}
+                      <AccountLogo accountId={tx.accountId} />
                       <span className="text-sm">{getAccountName(tx.accountId)}</span>
                     </div>
                   </TableCell>

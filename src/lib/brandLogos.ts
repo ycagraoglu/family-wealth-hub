@@ -177,6 +177,135 @@ export const brandLogos: Record<string, { name: string; logo: string; color: str
   },
 };
 
+// Bank & Credit Card logos
+export const bankLogos: Record<string, { name: string; logo: string; color: string }> = {
+  // Turkish Banks
+  'ziraat': {
+    name: 'Ziraat Bankası',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Ziraat_Bankası_logo.svg/320px-Ziraat_Bankası_logo.svg.png',
+    color: '#006341'
+  },
+  'garanti': {
+    name: 'Garanti BBVA',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Garanti_BBVA_logo.svg/320px-Garanti_BBVA_logo.svg.png',
+    color: '#004d40'
+  },
+  'akbank': {
+    name: 'Akbank',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Akbank_logo.svg/320px-Akbank_logo.svg.png',
+    color: '#e31937'
+  },
+  'isbank': {
+    name: 'İş Bankası',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Turkiye_Is_Bankasi_logo.svg/320px-Turkiye_Is_Bankasi_logo.svg.png',
+    color: '#003399'
+  },
+  'yapikredi': {
+    name: 'Yapı Kredi',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Yap%C4%B1_Kredi_logo.svg/320px-Yap%C4%B1_Kredi_logo.svg.png',
+    color: '#004990'
+  },
+  'halkbank': {
+    name: 'Halkbank',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/T._Halk_Bankasi_logo.svg/320px-T._Halk_Bankasi_logo.svg.png',
+    color: '#00447c'
+  },
+  'vakifbank': {
+    name: 'Vakıfbank',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Vakifbank_logo.svg/320px-Vakifbank_logo.svg.png',
+    color: '#00247d'
+  },
+  'denizbank': {
+    name: 'Denizbank',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/DenizBank_Logo.svg/320px-DenizBank_Logo.svg.png',
+    color: '#f7941d'
+  },
+  'qnb': {
+    name: 'QNB Finansbank',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/QNB_Finansbank_logo.svg/320px-QNB_Finansbank_logo.svg.png',
+    color: '#800080'
+  },
+  'enpara': {
+    name: 'Enpara',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Enpara.com_Logo.svg/320px-Enpara.com_Logo.svg.png',
+    color: '#ff6f00'
+  },
+  
+  // Credit Card Brands
+  'bonus': {
+    name: 'Bonus Card',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Garanti_BBVA_logo.svg/320px-Garanti_BBVA_logo.svg.png',
+    color: '#f97066'
+  },
+  'axess': {
+    name: 'Axess',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Akbank_logo.svg/320px-Akbank_logo.svg.png',
+    color: '#3b82f6'
+  },
+  'maximum': {
+    name: 'Maximum',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Turkiye_Is_Bankasi_logo.svg/320px-Turkiye_Is_Bankasi_logo.svg.png',
+    color: '#8b5cf6'
+  },
+  'world': {
+    name: 'World Card',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Yap%C4%B1_Kredi_logo.svg/320px-Yap%C4%B1_Kredi_logo.svg.png',
+    color: '#1e40af'
+  },
+  'bankkart': {
+    name: 'Bankkart',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Ziraat_Bankası_logo.svg/320px-Ziraat_Bankası_logo.svg.png',
+    color: '#006341'
+  },
+  
+  // Generic
+  'visa': {
+    name: 'Visa',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/320px-Visa_Inc._logo.svg.png',
+    color: '#1a1f71'
+  },
+  'mastercard': {
+    name: 'Mastercard',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/320px-Mastercard-logo.svg.png',
+    color: '#eb001b'
+  },
+};
+
+// Get all available bank logos for selection
+export const getBuiltInBankLogos = () => {
+  return Object.entries(bankLogos).map(([key, data]) => ({
+    id: key,
+    ...data
+  }));
+};
+
+// Get logo URL for a bank/card name
+export const getBankLogo = (name: string): string | null => {
+  const normalizedName = name.toLowerCase().trim();
+  
+  // Direct match
+  for (const [brand, data] of Object.entries(bankLogos)) {
+    if (normalizedName.includes(brand) || brand.includes(normalizedName)) {
+      return data.logo;
+    }
+  }
+  
+  return null;
+};
+
+// Get bank data for a name
+export const getBankData = (name: string): { name: string; logo: string; color: string } | null => {
+  const normalizedName = name.toLowerCase().trim();
+  
+  for (const [brand, data] of Object.entries(bankLogos)) {
+    if (normalizedName.includes(brand) || brand.includes(normalizedName)) {
+      return data;
+    }
+  }
+  
+  return null;
+};
+
 // Get all available brand logos for selection
 export const getBuiltInBrands = () => {
   return Object.entries(brandLogos).map(([key, data]) => ({

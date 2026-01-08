@@ -290,23 +290,23 @@ const SubscriptionsPage = () => {
           {/* Built-in Brands */}
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Hazır Logolar</p>
-            <ScrollArea className="h-32 rounded-md border border-border">
-              <div className="grid grid-cols-6 gap-2 p-2">
+            <ScrollArea className="h-44 rounded-md border border-border">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 p-3">
                 {builtInBrands.map((brand) => (
                   <button
                     key={brand.id}
                     type="button"
                     onClick={() => selectBuiltInLogo(brand)}
                     className={cn(
-                      "w-10 h-10 rounded-lg bg-white p-1.5 overflow-hidden border-2 transition-all hover:scale-105",
-                      formData.logoUrl === brand.logo ? "border-primary" : "border-transparent"
+                      "relative w-14 h-14 rounded-xl bg-white p-2 overflow-hidden border-2 transition-all hover:scale-105",
+                      formData.logoUrl === brand.logo ? "border-primary ring-2 ring-primary/20" : "border-transparent hover:border-muted"
                     )}
                     title={brand.name}
                   >
                     <img src={brand.logo} alt={brand.name} className="w-full h-full object-contain" />
                     {formData.logoUrl === brand.logo && (
                       <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-primary" />
+                        <Check className="w-5 h-5 text-primary" />
                       </div>
                     )}
                   </button>
