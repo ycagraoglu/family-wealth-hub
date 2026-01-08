@@ -63,6 +63,7 @@ export interface Subscription {
   category: string;
   icon?: string;
   color?: string;
+  logoUrl?: string;
 }
 
 export interface UpcomingPayment {

@@ -43,15 +43,19 @@ import {
   MoreVertical,
   Repeat,
   Pencil,
-  Trash2
+  Trash2,
+  Upload,
+  X,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { getBrandLogo } from '@/lib/brandLogos';
+import { getBrandLogo, getBuiltInBrands } from '@/lib/brandLogos';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const subscriptionCategories = ['Eğlence', 'Müzik', 'Teknoloji', 'Alışveriş', 'Spor', 'Eğitim', 'Diğer'];
-const subscriptionIcons = ['🎬', '🎵', '📺', '☁️', '📦', '💪', '📚', '🎮', '🎧', '📱'];
 const subscriptionColors = ['#e50914', '#1db954', '#ff0000', '#007aff', '#ff9900', '#10b981', '#8b5cf6', '#f97066'];
+const builtInBrands = getBuiltInBrands();
 
 const SubscriptionsPage = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
@@ -66,7 +70,7 @@ const SubscriptionsPage = () => {
     amount: '',
     billingDay: '',
     category: '',
-    icon: '🎬',
+    logoUrl: '',
     color: '#e50914'
   });
 
@@ -79,7 +83,7 @@ const SubscriptionsPage = () => {
       amount: '',
       billingDay: '',
       category: '',
-      icon: '🎬',
+      logoUrl: '',
       color: '#e50914'
     });
   };
@@ -96,8 +100,9 @@ const SubscriptionsPage = () => {
       amount: parseFloat(formData.amount),
       billingDay: parseInt(formData.billingDay),
       category: formData.category,
-      icon: formData.icon,
-      color: formData.color
+      icon: '📦',
+      color: formData.color,
+      logoUrl: formData.logoUrl || undefined
     };
 
     setSubscriptions([...subscriptions, newSubscription]);
@@ -121,8 +126,9 @@ const SubscriptionsPage = () => {
             amount: parseFloat(formData.amount),
             billingDay: parseInt(formData.billingDay),
             category: formData.category,
-            icon: formData.icon,
-            color: formData.color
+            icon: '📦',
+            color: formData.color,
+            logoUrl: formData.logoUrl || undefined
           }
         : sub
     ));
@@ -147,7 +153,7 @@ const SubscriptionsPage = () => {
       amount: sub.amount.toString(),
       billingDay: sub.billingDay.toString(),
       category: sub.category,
-      icon: sub.icon,
+      logoUrl: sub.logoUrl || getBrandLogo(sub.name) || '',
       color: sub.color
     });
     setIsEditDialogOpen(true);
@@ -158,22 +164,21 @@ const SubscriptionsPage = () => {
     setDeleteDialogOpen(true);
   };
 
-  const SubscriptionLogo = ({ name, icon, color }: { name: string; icon: string; color: string }) => {
-    const logoUrl = getBrandLogo(name);
+  const SubscriptionLogo = ({ name, icon, color, logoUrl }: { name: string; icon?: string; color: string; logoUrl?: string }) => {
+    const brandLogo = logoUrl || getBrandLogo(name);
     
-    if (logoUrl) {
+    if (brandLogo) {
       return (
         <div 
           className="w-12 h-12 rounded-xl flex items-center justify-center bg-white p-1.5 overflow-hidden"
         >
           <img 
-            src={logoUrl} 
+            src={brandLogo} 
             alt={name}
             className="w-full h-full object-contain"
             onError={(e) => {
-              // Fallback to icon if image fails to load
               (e.target as HTMLImageElement).style.display = 'none';
-              (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-2xl">${icon}</span>`;
+              (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-2xl">${icon || '📦'}</span>`;
             }}
           />
         </div>
@@ -185,9 +190,29 @@ const SubscriptionsPage = () => {
         className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
         style={{ backgroundColor: `${color}15` }}
       >
-        {icon}
+        {icon || '📦'}
       </div>
     );
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, logoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const selectBuiltInLogo = (brand: { logo: string; color: string; name: string }) => {
+    setFormData({ 
+      ...formData, 
+      logoUrl: brand.logo, 
+      color: brand.color,
+      name: formData.name || brand.name
+    });
   };
 
   const SubscriptionForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
@@ -239,41 +264,99 @@ const SubscriptionsPage = () => {
           </SelectContent>
         </Select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>İkon (Logo yoksa)</Label>
-          <Select value={formData.icon} onValueChange={(v) => setFormData({ ...formData, icon: v })}>
-            <SelectTrigger className="bg-secondary border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {subscriptionIcons.map(icon => (
-                <SelectItem key={icon} value={icon}>{icon}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Renk</Label>
-          <Select value={formData.color} onValueChange={(v) => setFormData({ ...formData, color: v })}>
-            <SelectTrigger className="bg-secondary border-border">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: formData.color }} />
-                <span>Renk</span>
+      
+      {/* Logo Selection */}
+      <div className="space-y-2">
+        <Label>Logo</Label>
+        <div className="space-y-3">
+          {/* Current Logo Preview */}
+          {formData.logoUrl && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+              <div className="w-12 h-12 rounded-xl bg-white p-1.5 overflow-hidden">
+                <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-contain" />
               </div>
-            </SelectTrigger>
-            <SelectContent>
-              {subscriptionColors.map(color => (
-                <SelectItem key={color} value={color}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <span className="text-sm text-muted-foreground flex-1">Seçili logo</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setFormData({ ...formData, logoUrl: '' })}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          
+          {/* Built-in Brands */}
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Hazır Logolar</p>
+            <ScrollArea className="h-32 rounded-md border border-border">
+              <div className="grid grid-cols-6 gap-2 p-2">
+                {builtInBrands.map((brand) => (
+                  <button
+                    key={brand.id}
+                    type="button"
+                    onClick={() => selectBuiltInLogo(brand)}
+                    className={cn(
+                      "w-10 h-10 rounded-lg bg-white p-1.5 overflow-hidden border-2 transition-all hover:scale-105",
+                      formData.logoUrl === brand.logo ? "border-primary" : "border-transparent"
+                    )}
+                    title={brand.name}
+                  >
+                    <img src={brand.logo} alt={brand.name} className="w-full h-full object-contain" />
+                    {formData.logoUrl === brand.logo && (
+                      <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-primary" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+          
+          {/* Upload Custom Logo */}
+          <div className="flex items-center gap-2">
+            <Label 
+              htmlFor="logo-upload" 
+              className="flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border border-dashed border-border bg-secondary/50 cursor-pointer hover:bg-secondary transition-colors"
+            >
+              <Upload className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Özel logo yükle</span>
+            </Label>
+            <input
+              id="logo-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+          </div>
         </div>
       </div>
+
+      {/* Color */}
+      <div className="space-y-2">
+        <Label>Renk</Label>
+        <Select value={formData.color} onValueChange={(v) => setFormData({ ...formData, color: v })}>
+          <SelectTrigger className="bg-secondary border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: formData.color }} />
+              <span>Renk</span>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            {subscriptionColors.map(color => (
+              <SelectItem key={color} value={color}>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Button className="w-full bg-primary hover:bg-primary/90" onClick={onSubmit}>
         {submitLabel}
       </Button>
@@ -352,7 +435,7 @@ const SubscriptionsPage = () => {
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <SubscriptionLogo name={sub.name} icon={sub.icon} color={sub.color} />
+                      <SubscriptionLogo name={sub.name} icon={sub.icon} color={sub.color || '#8b5cf6'} logoUrl={sub.logoUrl} />
                       <div>
                         <h3 className="font-semibold">{sub.name}</h3>
                         <p className="text-sm text-muted-foreground">{sub.category}</p>
