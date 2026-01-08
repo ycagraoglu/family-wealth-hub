@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,8 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/types/finance';
 import { users } from '@/data/mockData';
-import { User as UserIcon, Lock, Shield, Save, Camera } from 'lucide-react';
+import { User as UserIcon, Lock, Shield, Save, Camera, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Professional photo avatars using pravatar.cc
 const avatarOptions = [
@@ -27,7 +28,8 @@ const avatarOptions = [
   { id: 'professional-12', url: 'https://i.pravatar.cc/150?img=17' },
 ];
 
-const getAvatarUrl = (avatarId: string) => {
+const getAvatarUrl = (avatarId: string, customUrl?: string) => {
+  if (customUrl) return customUrl;
   const found = avatarOptions.find(a => a.id === avatarId);
   if (found) return found.url;
   return `https://i.pravatar.cc/150?u=${avatarId}`;
@@ -43,10 +45,36 @@ const ProfilePage = () => {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    avatarId: 'professional-1'
+    avatarId: 'professional-1',
+    customAvatarUrl: ''
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: 'Hata', description: 'Dosya boyutu 5MB\'dan küçük olmalı', variant: 'destructive' });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ 
+          ...prev, 
+          customAvatarUrl: reader.result as string,
+          avatarId: '' 
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearCustomAvatar = () => {
+    setFormData(prev => ({ ...prev, customAvatarUrl: '', avatarId: 'professional-1' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSaveProfile = () => {
     if (!formData.name.trim()) {
@@ -117,7 +145,7 @@ const ProfilePage = () => {
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center overflow-hidden ring-4 ring-background">
                 <img 
-                  src={getAvatarUrl(formData.avatarId)} 
+                  src={getAvatarUrl(formData.avatarId, formData.customAvatarUrl)} 
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
@@ -155,26 +183,70 @@ const ProfilePage = () => {
                   <Camera className="w-4 h-4" />
                   Avatar Seç
                 </h3>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                  {avatarOptions.map(({ id, url }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className={cn(
-                        "w-14 h-14 rounded-full flex items-center justify-center transition-all overflow-hidden",
-                        formData.avatarId === id 
-                          ? "ring-2 ring-primary ring-offset-2 ring-offset-background scale-110" 
-                          : "hover:ring-2 hover:ring-muted-foreground/50"
-                      )}
-                      onClick={() => setFormData(prev => ({ ...prev, avatarId: id }))}
+                
+                {/* Custom Avatar Upload */}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Kendi Fotoğrafınızı Yükleyin</p>
+                  {formData.customAvatarUrl ? (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+                      <div className="w-14 h-14 rounded-full overflow-hidden">
+                        <img src={formData.customAvatarUrl} alt="Custom avatar" className="w-full h-full object-cover" />
+                      </div>
+                      <span className="text-sm text-muted-foreground flex-1">Yüklenen fotoğraf</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={clearCustomAvatar}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Label 
+                      htmlFor="avatar-upload" 
+                      className="flex items-center justify-center gap-2 p-4 rounded-lg border border-dashed border-border bg-secondary/50 cursor-pointer hover:bg-secondary transition-colors"
                     >
-                      <img 
-                        src={url} 
-                        alt="Avatar option"
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Fotoğraf yükle (max 5MB)</span>
+                    </Label>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+
+                {/* Pre-built Avatars */}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Hazır Avatarlar</p>
+                  <ScrollArea className="h-28 rounded-md border border-border">
+                    <div className="grid grid-cols-6 gap-3 p-3">
+                      {avatarOptions.map(({ id, url }) => (
+                        <button
+                          key={id}
+                          type="button"
+                          className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center transition-all overflow-hidden",
+                            formData.avatarId === id && !formData.customAvatarUrl
+                              ? "ring-2 ring-primary ring-offset-2 ring-offset-background scale-110" 
+                              : "hover:ring-2 hover:ring-muted-foreground/50"
+                          )}
+                          onClick={() => setFormData(prev => ({ ...prev, avatarId: id, customAvatarUrl: '' }))}
+                        >
+                          <img 
+                            src={url} 
+                            alt="Avatar option"
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </div>
               </div>
             </>
